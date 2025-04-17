@@ -3,6 +3,7 @@ from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
 from functools import wraps
 from quart_cors import cors
+import numpy as np  # Importing numpy for vector operations
 
 MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
 API_KEY = "123456789012345"  # Replace this with your own secure key
@@ -52,12 +53,21 @@ async def embed():
     elif not isinstance(texts, list):
         return jsonify({"error": "'text' must be a string or a list of strings"}), 400
 
-    embeddings = model.encode(texts, convert_to_numpy=True).tolist()
+    # Generate embeddings
+    embeddings = model.encode(texts, convert_to_numpy=True)
+
+    # Normalize embeddings (optional, for cosine similarity)
+    normalized_embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+    # Convert embeddings to list format for easy handling in JavaScript
+    embeddings_list = normalized_embeddings.tolist()
+
     return jsonify({
-        "embeddings": embeddings,
+        "embeddings": embeddings_list,
         "input_count": len(texts),
         "dimension": model.get_sentence_embedding_dimension()
     })
 
 if __name__ == '__main__':
     app.run(port=5000)
+
